@@ -1,0 +1,16 @@
+const $=s=>document.querySelector(s);
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));b.classList.add("active");$("#"+b.dataset.tab).classList.add("active")});
+async function login(){const r=await fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:$("#u").value,password:$("#p").value})});if(r.ok){$("#login").hidden=true;$("#app").hidden=false;load()}else $("#err").textContent="بيانات الدخول غير صحيحة";}
+async function logout(){await fetch("/api/logout",{method:"POST"});location.reload()}
+async function load(){const r=await fetch("/api/admin/dashboard");if(!r.ok)return location.reload();const d=await r.json();$("#sNews").textContent=d.news.length;$("#sResearch").textContent=d.research.length;$("#sPrograms").textContent=d.programs.length;$("#sMessages").textContent=d.messages.length;
+$("#newsAdmin").innerHTML=d.news.map(x=>`<div class=item><div><h3>${esc(x.title)}</h3><p>${esc(x.body)}</p></div><button class=delete onclick="del('news',${x.id})">حذف</button></div>`).join("");
+$("#researchAdmin").innerHTML=d.research.map(x=>`<div class=item><div><h3>${esc(x.title)}</h3><p>${esc(x.description)}</p>${x.file?`<a href="${x.file}" target=_blank>فتح الملف</a>`:""}</div><button class=delete onclick="del('research',${x.id})">حذف</button></div>`).join("");
+$("#programAdmin").innerHTML=d.programs.map(x=>`<div class=item><div><h3>${esc(x.title)}</h3><p>${esc(x.description)}</p></div><button class=delete onclick="del('programs',${x.id})">حذف</button></div>`).join("");
+$("#messagesAdmin").innerHTML=d.messages.map(x=>`<div class=item><div><h3>${esc(x.name)} — ${esc(x.email)}</h3><p>${esc(x.message)}</p></div><button class=delete onclick="del('messages',${x.id})">حذف</button></div>`).join("")||"<p>لا توجد رسائل.</p>";}
+function esc(v){return String(v||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+async function del(type,id){if(!confirm("هل تريد الحذف؟"))return;await fetch(`/api/admin/${type}/${id}`,{method:"DELETE"});load()}
+async function formPost(id,url){const f=$(id);f.onsubmit=async e=>{e.preventDefault();const r=await fetch(url,{method:"POST",body:new FormData(f)});const d=await r.json();if(!r.ok)return alert(d.error||"حدث خطأ");f.reset();load();alert("تم الحفظ بنجاح")}}
+formPost("#newsForm","/api/admin/news");formPost("#researchForm","/api/admin/research");
+$("#programForm").onsubmit=async e=>{e.preventDefault();const f=e.target;const r=await fetch("/api/admin/programs",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(Object.fromEntries(new FormData(f)))});if(r.ok){f.reset();load();alert("تم الحفظ بنجاح")}};
+$("#passForm").onsubmit=async e=>{e.preventDefault();const r=await fetch("/api/admin/change-password",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(Object.fromEntries(new FormData(e.target)))});const d=await r.json();alert(d.ok?"تم تغيير كلمة المرور":d.error||"حدث خطأ");if(d.ok)e.target.reset()};
+fetch("/api/me").then(r=>r.json()).then(x=>{if(x.loggedIn){$("#login").hidden=true;$("#app").hidden=false;load()}});
